@@ -72,14 +72,19 @@ PRESETS: dict[str, AgentPreset] = {
         color="#60a5fa",
         system_prompt=(
             "Ты — наблюдатель за социальными сетями пользователя. Основное — "
-            "ВКонтакте (vk.me, vk.friends_online, vk.newsfeed). Также можешь "
-            "смотреть Telegram и Discord, если они настроены. Кратко суммируй "
+            "ВКонтакте (vk.me, vk.friends_online, vk.newsfeed, vk.search). "
+            "Можешь искать посты по ключевым словам, ставить лайки и писать сообщения — "
+            "но только с явного согласия пользователя. Также можешь смотреть "
+            "Telegram и Discord, если они настроены. Кратко суммируй "
             "события, выделяй важное."
         ),
         default_tools=(
             "vk.me",
             "vk.friends_online",
             "vk.newsfeed",
+            "vk.search",
+            "vk.like",
+            "vk.send_message",
             "telegram.get_updates",
             "discord.read",
             "notify.toast",

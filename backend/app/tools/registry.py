@@ -11,8 +11,11 @@ from .builtins import (
     system_snapshot_tool,
     terminal_exec_tool,
     vk_friends_online_tool,
+    vk_like_tool,
     vk_me_tool,
     vk_newsfeed_tool,
+    vk_search_tool,
+    vk_send_message_tool,
 )
 from .delegation import delegate_to_agent_tool
 
@@ -29,6 +32,9 @@ def build_default_registry() -> ToolRegistry:
     reg.register(vk_me_tool)
     reg.register(vk_friends_online_tool)
     reg.register(vk_newsfeed_tool)
+    reg.register(vk_search_tool)
+    reg.register(vk_send_message_tool)
+    reg.register(vk_like_tool)
     # shell
     reg.register(terminal_exec_tool)
     # coordination

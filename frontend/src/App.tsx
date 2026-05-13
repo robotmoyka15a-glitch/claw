@@ -12,23 +12,29 @@ import { DiscordPanel } from './panels/Discord';
 import { SteamPanel } from './panels/Steam';
 import { SpotifyPanel } from './panels/Spotify';
 import { SettingsPanel } from './panels/Settings';
+import { AboutPanel } from './panels/About';
 import { ToastLayer } from './panels/Toasts';
 import { AgentConfig } from './panels/AgentConfig';
 import { AgentChat } from './panels/AgentChat';
 import { useWS } from './hooks/useWS';
 
-// All panels selectable from the top dock. The list is filtered by connector
-// status so we never show panels for services that aren't configured.
-const ALL_PANELS: { key: PanelKey; title: string; size: [number, number]; connector?: string }[] = [
-  { key: 'terminal',  title: 'Терминал',   size: [640, 420] },
-  { key: 'processes', title: 'Процессы',   size: [560, 420] },
-  { key: 'system',    title: 'Система',    size: [520, 320] },
-  { key: 'vk',        title: 'ВКонтакте', size: [420, 520], connector: 'vk' },
-  { key: 'telegram',  title: 'Telegram',   size: [420, 520], connector: 'telegram' },
-  { key: 'discord',   title: 'Discord',    size: [420, 520], connector: 'discord' },
-  { key: 'steam',     title: 'Steam',      size: [420, 520], connector: 'steam' },
-  { key: 'spotify',   title: 'Spotify',    size: [360, 260], connector: 'spotify' },
-  { key: 'settings',  title: '⚙ Настройки', size: [480, 620] },
+const ALL_PANELS: {
+  key: PanelKey;
+  title: string;
+  size: [number, number];
+  connector?: string;
+  always?: boolean;
+}[] = [
+  { key: 'terminal',  title: '💻 Терминал',   size: [640, 420], always: true },
+  { key: 'processes', title: '🔧 Процессы',   size: [600, 460], always: true },
+  { key: 'system',    title: '📊 Система',    size: [520, 340], always: true },
+  { key: 'vk',        title: '💙 ВКонтакте', size: [440, 560], connector: 'vk' },
+  { key: 'telegram',  title: '✈️ Telegram',   size: [420, 520], connector: 'telegram' },
+  { key: 'discord',   title: '🎮 Discord',    size: [420, 520], connector: 'discord' },
+  { key: 'steam',     title: '🎯 Steam',      size: [420, 520], connector: 'steam' },
+  { key: 'spotify',   title: '🎵 Spotify',    size: [360, 300], connector: 'spotify' },
+  { key: 'settings',  title: '⚙️ Настройки', size: [500, 640], always: true },
+  { key: 'about',     title: '❓ Помощь',     size: [520, 640], always: true },
 ];
 
 export default function App() {
@@ -46,13 +52,11 @@ export default function App() {
     pushToast,
   } = useStore();
 
-  // Initial fetches
   useEffect(() => {
     api.listAgents().then(setAgents).catch(console.error);
     api.connectorStatus().then(setConnectors).catch(() => {});
   }, [setAgents, setConnectors]);
 
-  // Live agent-state subscription (drives the room animations)
   useWS<{ type?: string; agent_id?: string; state?: any; agents?: any[] }>(
     '/ws/agents-state',
     (msg) => {
@@ -64,18 +68,15 @@ export default function App() {
     },
   );
 
-  // Live system snapshot — feeds the CPU painting and the Stats panel legend
   useWS<SystemSnapshot>('/ws/system', (snap) => setSnapshot(snap));
 
-  // Poll pending notifications from backend (agents calling notify.toast)
   useEffect(() => {
     const t = setInterval(async () => {
       try {
         const list = await api.pendingNotifications();
-        for (const n of list) {
+        for (const n of list)
           pushToast({ title: n.title, message: n.message, level: n.level, ts: n.ts });
-        }
-      } catch {/* backend may be down, ignore */}
+      } catch { /* ignore */ }
     }, 3000);
     return () => clearInterval(t);
   }, [pushToast]);
@@ -87,19 +88,21 @@ export default function App() {
     openPanel({ key: 'agent-config', title: `${a.name} · настройки`, agentId });
   };
 
-  const connectorOk = (key?: string) => {
-    if (!key) return true;
-    return connectors.find((c) => c.key === key)?.configured ?? true;
-    // ^ if the status list hasn't loaded yet, show the button optimistically
+  const connectorOk = (p: typeof ALL_PANELS[0]) => {
+    if (p.always) return true;
+    if (!p.connector) return true;
+    // Show connector panels always — panel itself will show error if not configured
+    return true;
   };
-
-  const visiblePanels = ALL_PANELS.filter((p) => connectorOk(p.connector));
 
   const snapshot = useStore((s) => s.snapshot);
   const agentStates = useStore((s) => s.agentStates);
 
+  // Split dock into two rows if too many buttons
+  const visiblePanels = ALL_PANELS.filter(connectorOk);
+
   return (
-    <div className="relative w-screen h-screen">
+    <div className="relative w-screen h-screen overflow-hidden">
       <Room
         agents={agents}
         states={agentStates}
@@ -107,59 +110,62 @@ export default function App() {
         onSelect={onAgentClick}
       />
 
-      {/* top dock */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 max-w-[75vw] justify-center">
+      {/* top dock — two rows */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-wrap gap-1.5 justify-center max-w-[90vw] z-10">
         {visiblePanels.map((p) => (
           <button
             key={p.key}
-            className="btn"
+            className="btn text-xs px-2.5 py-1"
             onClick={() => openPanel({ key: p.key, title: p.title })}
           >
             {p.title}
           </button>
         ))}
         <button
-          className="btn"
-          onClick={() => {
-            api
-              .createAgent({ preset: 'researcher', name: 'Новый', desk: 'spare' })
-              .then(upsertAgent);
-          }}
+          className="btn text-xs px-2.5 py-1"
+          onClick={() =>
+            api.createAgent({ preset: 'researcher', name: 'Новый', desk: 'spare' })
+              .then(upsertAgent)
+              .catch(() => {})
+          }
         >
-          + агент
+          ➕ агент
         </button>
       </div>
 
-      {/* brand */}
-      <div className="absolute top-3 left-4 text-sm text-gray-400 pointer-events-none">
-        <span className="text-[#f5b301] font-bold">claw</span> · рабочая комната
+      {/* brand — bottom left */}
+      <div className="absolute bottom-3 left-4 text-xs text-gray-500 pointer-events-none select-none">
+        <span className="text-[#f5b301] font-bold">claw</span>
+        {' '}·{' '}
+        <span>{agents.length} агентов</span>
+        {snapshot && (
+          <span className="ml-2">
+            CPU {snapshot.cpu_percent.toFixed(0)}%{' '}
+            RAM {snapshot.ram_percent.toFixed(0)}%
+          </span>
+        )}
       </div>
 
-      {/* toast layer */}
       <ToastLayer />
 
-      {/* draggable panels */}
-      {openPanels.map((p, i) => (
-        <PanelFrame
-          key={`${p.key}-${p.agentId ?? 'global'}`}
-          title={p.title}
-          onClose={() => closePanel(p.key, p.agentId)}
-          initial={{
-            x: 60 + i * 24,
-            y: 70 + i * 24,
-            w:
-              p.key === 'agent-chat' ? 520 :
-              p.key === 'agent-config' ? 440 :
-              ALL_PANELS.find((g) => g.key === p.key)?.size[0] ?? 480,
-            h:
-              p.key === 'agent-chat' ? 480 :
-              p.key === 'agent-config' ? 620 :
-              ALL_PANELS.find((g) => g.key === p.key)?.size[1] ?? 360,
-          }}
-        >
-          <PanelBody panelKey={p.key} agentId={p.agentId} />
-        </PanelFrame>
-      ))}
+      {openPanels.map((p, i) => {
+        const def = ALL_PANELS.find((g) => g.key === p.key);
+        return (
+          <PanelFrame
+            key={`${p.key}-${p.agentId ?? 'global'}`}
+            title={p.title}
+            onClose={() => closePanel(p.key, p.agentId)}
+            initial={{
+              x: 60 + i * 28,
+              y: 70 + i * 28,
+              w: p.key === 'agent-chat' ? 520 : p.key === 'agent-config' ? 460 : def?.size[0] ?? 480,
+              h: p.key === 'agent-chat' ? 500 : p.key === 'agent-config' ? 640 : def?.size[1] ?? 380,
+            }}
+          >
+            <PanelBody panelKey={p.key} agentId={p.agentId} />
+          </PanelFrame>
+        );
+      })}
     </div>
   );
 }
@@ -168,19 +174,18 @@ function PanelBody({ panelKey, agentId }: { panelKey: PanelKey; agentId?: string
   const agent = useStore((s) => s.agents.find((a) => a.id === agentId));
 
   switch (panelKey) {
-    case 'terminal': return <Terminal />;
-    case 'processes': return <ProcessList />;
-    case 'system': return <SystemStats />;
-    case 'vk': return <VKFeed />;
-    case 'telegram': return <TelegramPanel />;
-    case 'discord': return <DiscordPanel />;
-    case 'steam': return <SteamPanel />;
-    case 'spotify': return <SpotifyPanel />;
-    case 'settings': return <SettingsPanel />;
-    case 'notifications': return <div>see top-right toasts</div>;
-    case 'agent-config':
-      return agent ? <AgentConfig agent={agent} /> : <div>агент не найден</div>;
-    case 'agent-chat':
-      return agent ? <AgentChat agent={agent} /> : <div>агент не найден</div>;
+    case 'terminal':     return <Terminal />;
+    case 'processes':    return <ProcessList />;
+    case 'system':       return <SystemStats />;
+    case 'vk':           return <VKFeed />;
+    case 'telegram':     return <TelegramPanel />;
+    case 'discord':      return <DiscordPanel />;
+    case 'steam':        return <SteamPanel />;
+    case 'spotify':      return <SpotifyPanel />;
+    case 'settings':     return <SettingsPanel />;
+    case 'about':        return <AboutPanel />;
+    case 'notifications': return <div className="text-sm text-gray-400">Уведомления появятся в правом верхнем углу.</div>;
+    case 'agent-config': return agent ? <AgentConfig agent={agent} /> : <div className="text-sm text-gray-400">Агент не найден</div>;
+    case 'agent-chat':   return agent ? <AgentChat agent={agent} /> : <div className="text-sm text-gray-400">Агент не найден</div>;
   }
 }

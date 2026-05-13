@@ -167,6 +167,91 @@ vk_newsfeed_tool = Tool(
 )
 
 
+async def _vk_search(query: str, count: int = 20) -> dict:
+    client = VKClient()
+    try:
+        return await client.newsfeed_search(query=query, count=int(count))
+    except VKError as e:
+        raise ToolError(str(e)) from e
+    finally:
+        await client.close()
+
+
+async def _vk_send_message(user_id: int, message: str) -> dict:
+    client = VKClient()
+    try:
+        msg_id = await client.send_message(int(user_id), message)
+        return {"ok": True, "message_id": msg_id}
+    except VKError as e:
+        raise ToolError(str(e)) from e
+    finally:
+        await client.close()
+
+
+async def _vk_like(owner_id: int, item_id: int, item_type: str = "post") -> dict:
+    client = VKClient()
+    try:
+        return await client.like(int(owner_id), int(item_id), item_type)
+    except VKError as e:
+        raise ToolError(str(e)) from e
+    finally:
+        await client.close()
+
+
+vk_search_tool = Tool(
+    name="vk.search",
+    description="Search public VK posts by keyword. Returns posts matching the query.",
+    parameters={
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+            "query": {"type": "string"},
+            "count": {"type": "integer", "minimum": 1, "maximum": 100},
+        },
+    },
+    fn=_vk_search,
+    category="vk",
+    tags=["social", "read-only"],
+)
+
+vk_send_message_tool = Tool(
+    name="vk.send_message",
+    description=(
+        "Send a private message to a VK user by their numeric user_id. "
+        "Requires the token to have 'messages' scope. Always confirm with the user first."
+    ),
+    parameters={
+        "type": "object",
+        "required": ["user_id", "message"],
+        "properties": {
+            "user_id": {"type": "integer", "description": "Numeric VK user id"},
+            "message": {"type": "string"},
+        },
+    },
+    fn=_vk_send_message,
+    category="vk",
+    dangerous=True,
+    tags=["social", "write"],
+)
+
+vk_like_tool = Tool(
+    name="vk.like",
+    description="Add a like to a VK post/photo/video. item_type: post | photo | video.",
+    parameters={
+        "type": "object",
+        "required": ["owner_id", "item_id"],
+        "properties": {
+            "owner_id": {"type": "integer"},
+            "item_id": {"type": "integer"},
+            "item_type": {"type": "string", "enum": ["post", "photo", "video", "comment"]},
+        },
+    },
+    fn=_vk_like,
+    category="vk",
+    tags=["social", "write"],
+)
+
+
 # ------------------------------- terminal.exec ---------------------------
 #
 # Safe one-shot shell execution. Not to be confused with the interactive PTY

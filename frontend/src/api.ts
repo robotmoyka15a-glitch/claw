@@ -108,6 +108,7 @@ export const api = {
   snapshot: () => j<SystemSnapshot>('/api/system/snapshot'),
   processes: (sort = 'cpu', limit = 100) =>
     j<ProcessRow[]>(`/api/system/processes?sort_by=${sort}&limit=${limit}`),
+  processDetail: (pid: number) => j<any>(`/api/system/processes/${pid}`),
   killProcess: (pid: number, force = false) =>
     j<{ ok: boolean }>(`/api/system/processes/${pid}/kill?force=${force}`, { method: 'POST' }),
 
@@ -133,6 +134,19 @@ export const api = {
   vkMe: () => j<any>('/api/vk/me'),
   vkFriends: () => j<any>('/api/vk/friends/online'),
   vkFeed: (n = 25) => j<any>(`/api/vk/newsfeed?count=${n}`),
+  vkSearch: (q: string, n = 20) => j<any>(`/api/vk/newsfeed/search?q=${encodeURIComponent(q)}&count=${n}`),
+  vkWall: (ownerId?: number, count = 20) =>
+    j<any>(`/api/vk/wall${ownerId ? `?owner_id=${ownerId}&count=${count}` : `?count=${count}`}`),
+  vkSendMessage: (userId: number, message: string) =>
+    j<any>('/api/vk/messages/send', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, message }),
+    }),
+  vkLike: (ownerId: number, itemId: number, itemType = 'post') =>
+    j<any>('/api/vk/likes/add', {
+      method: 'POST',
+      body: JSON.stringify({ owner_id: ownerId, item_id: itemId, item_type: itemType }),
+    }),
 
   tgMe: () => j<any>('/api/connectors/telegram/me'),
   tgUpdates: (n = 20) => j<any>(`/api/connectors/telegram/updates?limit=${n}`),

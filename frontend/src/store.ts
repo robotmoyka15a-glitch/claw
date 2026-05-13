@@ -12,6 +12,7 @@ export type PanelKey =
   | 'spotify'
   | 'notifications'
   | 'settings'
+  | 'about'
   | 'agent-config'
   | 'agent-chat';
 
