@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  color: #e6e8ef;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.panel {
+  background: rgba(20, 24, 34, 0.92);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+  border-radius: 10px;
+}
+
+.panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.panel-body { padding: 12px 14px; overflow: auto; }
+
+.btn {
+  background: #1f2637;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #e6e8ef;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn:hover { background: #2a3249; }
+.btn-primary { background: #f5b301; color: #111; border-color: transparent; }
+.btn-primary:hover { background: #ffc929; }
+
+input, select, textarea {
+  background: #0f1420;
+  color: #e6e8ef;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 100%;
+}
+textarea { font-family: inherit; min-height: 80px; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a3249; border-radius: 4px; }
