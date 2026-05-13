@@ -5,6 +5,7 @@ export type PanelKey =
   | 'terminal'
   | 'processes'
   | 'system'
+  | 'models'
   | 'vk'
   | 'telegram'
   | 'discord'

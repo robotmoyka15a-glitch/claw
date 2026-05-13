@@ -31,6 +31,68 @@ class OllamaProvider:
             r.raise_for_status()
             return [m["name"] for m in r.json().get("models", [])]
 
+    async def list_models_detail(self) -> list[dict]:
+        """Return full model metadata from /api/tags (size, family, modified_at, etc.)."""
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            try:
+                r = await c.get(f"{self.base_url}/api/tags")
+                r.raise_for_status()
+                return r.json().get("models", [])
+            except Exception:  # noqa: BLE001
+                return []
+
+    async def model_info(self, name: str) -> dict:
+        """Return detailed info for a single model via /api/show."""
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            try:
+                r = await c.post(f"{self.base_url}/api/show", json={"name": name})
+                r.raise_for_status()
+                return r.json()
+            except Exception as e:  # noqa: BLE001
+                return {"error": str(e)}
+
+    async def delete_model(self, name: str) -> dict:
+        """Delete a model from the local Ollama store."""
+        async with httpx.AsyncClient(timeout=30.0) as c:
+            r = await c.request("DELETE", f"{self.base_url}/api/delete", json={"name": name})
+            if r.status_code not in (200, 404):
+                r.raise_for_status()
+            return {"ok": True, "name": name}
+
+    async def pull_model(self, name: str):
+        """Pull a model and yield progress dicts (streamed)."""
+        async with httpx.AsyncClient(timeout=None) as c:
+            async with c.stream(
+                "POST",
+                f"{self.base_url}/api/pull",
+                json={"name": name, "stream": True},
+            ) as r:
+                r.raise_for_status()
+                async for line in r.aiter_lines():
+                    if line:
+                        try:
+                            yield json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+    async def running_models(self) -> list[dict]:
+        """Return models currently loaded in memory via /api/ps."""
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            try:
+                r = await c.get(f"{self.base_url}/api/ps")
+                r.raise_for_status()
+                return r.json().get("models", [])
+            except Exception:  # noqa: BLE001
+                return []
+
+    async def is_online(self) -> bool:
+        async with httpx.AsyncClient(timeout=3.0) as c:
+            try:
+                r = await c.get(f"{self.base_url}/api/tags")
+                return r.status_code == 200
+            except Exception:  # noqa: BLE001
+                return False
+
     @staticmethod
     def _render_messages(messages: list[LLMMessage]) -> list[dict]:
         out: list[dict] = []

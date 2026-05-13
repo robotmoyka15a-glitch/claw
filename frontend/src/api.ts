@@ -182,6 +182,20 @@ export const api = {
 
   pendingNotifications: () => j<Notification[]>('/api/connectors/notify/pending'),
 
+  // models / LLM providers
+  modelsSnapshot: () => j<any>('/api/models'),
+  ollamaModelInfo: (name: string) =>
+    j<any>(`/api/models/ollama/info/${encodeURIComponent(name)}`),
+  ollamaPull: (name: string) =>
+    j<{ ok: boolean; status: string; name: string }>('/api/models/ollama/pull', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  ollamaDelete: (name: string) =>
+    j<{ ok: boolean; name: string }>(`/api/models/ollama/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    }),
+
   // settings
   getSettings: () => j<SettingRow[]>('/api/settings'),
   updateSettings: (updates: Record<string, string>) =>
