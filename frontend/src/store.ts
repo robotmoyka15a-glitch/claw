@@ -21,6 +21,7 @@ interface PanelState {
   key: PanelKey;
   title: string;
   agentId?: string;
+  accent?: string;   // hex без #, например 'f5b301'
 }
 
 interface Toast {
