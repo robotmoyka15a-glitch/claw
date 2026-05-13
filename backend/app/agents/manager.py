@@ -38,6 +38,7 @@ from app.llm import (
     ToolSpec,
     get_provider,
 )
+from app.llm.router import TaskHint, get_router
 from app.tools import build_default_registry
 
 from .models import Agent, AgentMessage
@@ -296,6 +297,25 @@ async def stream_events(
     tools = _build_tool_specs(agent)
     registry = build_default_registry()
 
+    # Use ModelRouter to handle fallback and capability matching.
+    # Build a TaskHint from context: if the agent has tools enabled, we
+    # need a tool-calling capable model.
+    hint = TaskHint(
+        needs_tools=bool(_parse_tools(agent.allowed_tools)),
+        needs_speed=False,
+        offline_only=False,
+    )
+    try:
+        routed_provider, routed_model = await get_router().route(
+            agent.llm_provider,
+            agent.llm_model or "",
+            hint,
+        )
+    except Exception:  # noqa: BLE001
+        # Safety fallback: use the configured provider directly
+        routed_provider = provider
+        routed_model = agent.llm_model or ""
+
     await _set_state(agent_id, status="thinking", last_tool=None)
     yield {"type": "status", "status": "thinking"}
 
@@ -306,9 +326,9 @@ async def stream_events(
         finish_reason = "stop"
 
         try:
-            async for event in provider.stream_chat(
+            async for event in routed_provider.stream_chat(
                 llm_messages,
-                model=agent.llm_model or "",
+                model=routed_model,
                 temperature=agent.temperature,
                 tools=tools,
             ):

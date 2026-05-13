@@ -5,7 +5,7 @@ export type PanelKey =
   | 'terminal'
   | 'processes'
   | 'system'
-  | 'models'
+  | 'autonomy'
   | 'vk'
   | 'telegram'
   | 'discord'
@@ -21,7 +21,6 @@ interface PanelState {
   key: PanelKey;
   title: string;
   agentId?: string;
-  accent?: string;   // hex без #, например 'f5b301'
 }
 
 interface Toast {

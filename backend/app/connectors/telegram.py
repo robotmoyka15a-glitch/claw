@@ -1,16 +1,15 @@
 """Telegram connector — plain HTTP calls to api.telegram.org (Bot API).
 
-Claw does not run a long-poll loop; instead we just fetch updates on demand
-(``get_updates``). That keeps things simple and avoids clashing with any
-other bot infrastructure the user may have.
+Uses the shared httpx connection pool (app.core.http_pool) instead of
+creating a new client per request.  The long-poll loop lives in
+app.connectors.telegram_poller.
 """
 from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
 from app.core.config import get_settings
+from app.core.http_pool import get_client
 from app.tools.base import Tool, ToolError
 
 from .base import ConnectorError, require
@@ -22,10 +21,9 @@ class TelegramClient:
     def __init__(self, token: str | None = None) -> None:
         s = get_settings()
         self._token = token or s.telegram_bot_token
-        self._http = httpx.AsyncClient(timeout=15.0)
 
     async def close(self) -> None:
-        await self._http.aclose()
+        pass  # pool is shared; don't close it here
 
     @property
     def token(self) -> str:
@@ -33,7 +31,8 @@ class TelegramClient:
 
     async def _call(self, method: str, **params: Any) -> Any:
         url = f"{self.BASE}/bot{self.token}/{method}"
-        r = await self._http.post(url, json=params)
+        c = await get_client()
+        r = await c.post(url, json=params)
         data = r.json()
         if not data.get("ok"):
             raise ConnectorError(

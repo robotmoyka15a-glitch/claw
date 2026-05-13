@@ -42,10 +42,14 @@ class Settings(BaseSettings):
     qwen_cloud_default_model: str = "qwen-plus"
 
     # --- Telegram (Bot API) ---
-    # Create a bot via @BotFather, paste the token. For read-only monitoring of
-    # a private chat you can set the numeric chat id to fetch updates from.
     telegram_bot_token: str = ""
     telegram_default_chat_id: str = ""
+    # Webhook mode: set public URL to enable push instead of long-poll.
+    # Example: https://abc123.ngrok.io/webhook/telegram
+    telegram_webhook_url: str = ""
+    # Optional secret to validate incoming webhook requests (set same value
+    # when calling setWebhook with secret_token parameter).
+    telegram_webhook_secret: str = ""
 
     # --- Discord (Bot) ---
     # Create a bot application, copy the token from "Bot" tab. Claw uses the

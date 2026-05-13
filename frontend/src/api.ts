@@ -204,6 +204,34 @@ export const api = {
       body: JSON.stringify({ updates }),
     }),
   envPath: () => j<{ path: string; exists: boolean }>('/api/settings/env-path'),
+
+  // autonomy
+  listTasks: (agentId?: string) =>
+    j<any[]>(`/api/autonomy/tasks${agentId ? `?agent_id=${agentId}` : ''}`),
+  createTask: (data: any) =>
+    j<any>('/api/autonomy/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  updateTask: (id: string, patch: any) =>
+    j<any>(`/api/autonomy/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteTask: (id: string) =>
+    j<{ ok: boolean }>(`/api/autonomy/tasks/${id}`, { method: 'DELETE' }),
+  runTask: (id: string) =>
+    j<{ ok: boolean; task_id: string; status: string }>(`/api/autonomy/tasks/${id}/run`, { method: 'POST' }),
+  taskRuns: (id: string, limit = 20) =>
+    j<any[]>(`/api/autonomy/tasks/${id}/runs?limit=${limit}`),
+  recentEvents: (limit = 50) =>
+    j<any[]>(`/api/autonomy/events?limit=${limit}`),
+
+  // csrf token (fetched once on startup and attached to mutating requests)
+  csrfToken: () => j<{ token: string }>('/api/auth/token'),
+
+  // models + router capabilities
+  modelsSnapshot: () => j<any>('/api/models'),
+  ollamaModelInfo: (name: string) => j<any>(`/api/models/ollama/info/${encodeURIComponent(name)}`),
+  ollamaPull: (name: string) =>
+    j<any>('/api/models/ollama/pull', { method: 'POST', body: JSON.stringify({ name }) }),
+  ollamaDelete: (name: string) =>
+    j<any>(`/api/models/ollama/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  routerCapabilities: () => j<any[]>('/api/agents/router/capabilities'),
 };
 
 export function wsUrl(path: string): string {
