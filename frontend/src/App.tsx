@@ -11,6 +11,7 @@ import { TelegramPanel } from './panels/Telegram';
 import { DiscordPanel } from './panels/Discord';
 import { SteamPanel } from './panels/Steam';
 import { SpotifyPanel } from './panels/Spotify';
+import { SettingsPanel } from './panels/Settings';
 import { ToastLayer } from './panels/Toasts';
 import { AgentConfig } from './panels/AgentConfig';
 import { AgentChat } from './panels/AgentChat';
@@ -19,14 +20,15 @@ import { useWS } from './hooks/useWS';
 // All panels selectable from the top dock. The list is filtered by connector
 // status so we never show panels for services that aren't configured.
 const ALL_PANELS: { key: PanelKey; title: string; size: [number, number]; connector?: string }[] = [
-  { key: 'terminal', title: 'Терминал', size: [640, 420] },
-  { key: 'processes', title: 'Процессы', size: [560, 420] },
-  { key: 'system', title: 'Система', size: [520, 320] },
-  { key: 'vk', title: 'ВКонтакте', size: [420, 520], connector: 'vk' },
-  { key: 'telegram', title: 'Telegram', size: [420, 520], connector: 'telegram' },
-  { key: 'discord', title: 'Discord', size: [420, 520], connector: 'discord' },
-  { key: 'steam', title: 'Steam', size: [420, 520], connector: 'steam' },
-  { key: 'spotify', title: 'Spotify', size: [360, 260], connector: 'spotify' },
+  { key: 'terminal',  title: 'Терминал',   size: [640, 420] },
+  { key: 'processes', title: 'Процессы',   size: [560, 420] },
+  { key: 'system',    title: 'Система',    size: [520, 320] },
+  { key: 'vk',        title: 'ВКонтакте', size: [420, 520], connector: 'vk' },
+  { key: 'telegram',  title: 'Telegram',   size: [420, 520], connector: 'telegram' },
+  { key: 'discord',   title: 'Discord',    size: [420, 520], connector: 'discord' },
+  { key: 'steam',     title: 'Steam',      size: [420, 520], connector: 'steam' },
+  { key: 'spotify',   title: 'Spotify',    size: [360, 260], connector: 'spotify' },
+  { key: 'settings',  title: '⚙ Настройки', size: [480, 620] },
 ];
 
 export default function App() {
@@ -174,6 +176,7 @@ function PanelBody({ panelKey, agentId }: { panelKey: PanelKey; agentId?: string
     case 'discord': return <DiscordPanel />;
     case 'steam': return <SteamPanel />;
     case 'spotify': return <SpotifyPanel />;
+    case 'settings': return <SettingsPanel />;
     case 'notifications': return <div>see top-right toasts</div>;
     case 'agent-config':
       return agent ? <AgentConfig agent={agent} /> : <div>агент не найден</div>;

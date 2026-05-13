@@ -16,7 +16,7 @@ whose finish_reason is 'tool_calls'. The manager is expected to:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Literal, Optional, Protocol, Union
+from typing import Any, AsyncIterator, List, Literal, Optional, Protocol, Union
 
 
 Role = Literal["system", "user", "assistant", "tool"]
@@ -28,7 +28,7 @@ class LLMMessage:
     content: str
     # Populated only for role="assistant" messages that triggered tool calls,
     # or for role="tool" messages providing the result of one call.
-    tool_calls: Optional[list[dict]] = None  # [{"id","name","arguments"(str)}]
+    tool_calls: Optional[List[dict]] = None  # [{"id","name","arguments"(str)}]
     tool_call_id: Optional[str] = None       # set on role="tool" messages
     name: Optional[str] = None               # tool name for role="tool"
 
@@ -67,15 +67,20 @@ class ToolSpec:
 
 
 class LLMProvider(Protocol):
+    """
+    FIX #4: Protocol исправлен:
+      - stream_chat помечен как async def (возвращает AsyncIterator через async generator)
+      - tools: List[ToolSpec] с корректным дефолтом пустого списка вместо Ellipsis
+    """
     name: str
     default_model: str
 
-    async def list_models(self) -> list[str]: ...
+    async def list_models(self) -> List[str]: ...
 
-    def stream_chat(
+    async def stream_chat(  # type: ignore[override]
         self,
-        messages: list[LLMMessage],
+        messages: List[LLMMessage],
         model: str,
         temperature: float = 0.7,
-        tools: list[ToolSpec] = ...,  # type: ignore[assignment]
+        tools: Optional[List[ToolSpec]] = None,
     ) -> AsyncIterator[ChatEvent]: ...

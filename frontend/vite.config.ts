@@ -13,4 +13,18 @@ export default defineConfig({
       '/ws': { target: API.replace('http', 'ws'), ws: true, changeOrigin: true },
     },
   },
+  build: {
+    // Split the two heaviest deps (Pixi.js for the isometric room, xterm.js
+    // for the terminal) out of the main bundle so the initial load is lighter.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          pixi: ['pixi.js'],
+          xterm: ['@xterm/xterm', '@xterm/addon-fit'],
+          charts: ['recharts'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 900,
+  },
 });

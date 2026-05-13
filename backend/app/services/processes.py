@@ -97,7 +97,8 @@ def process_detail(pid: int) -> dict[str, Any]:
                         "raddr": f"{c.raddr.ip}:{c.raddr.port}" if c.raddr else "",
                         "status": c.status,
                     }
-                    for c in (_safe(p.connections) or [])
+                    # psutil 6.0: Process.connections() deprecated → net_connections()
+                    for c in (_safe(p.net_connections) or [])
                 ][:50],
             }
     except psutil.NoSuchProcess:

@@ -13,3 +13,8 @@ pywinpty==2.0.13 ; sys_platform == "win32"
 # Windows Runtime bindings for native toast notifications.
 winrt-Windows.UI.Notifications==2.3.0 ; sys_platform == "win32"
 winrt-Windows.Data.Xml.Dom==2.3.0 ; sys_platform == "win32"
+# System-tray icon for the packaged EXE launcher (optional at runtime).
+pystray==0.19.5 ; sys_platform == "win32"
+Pillow==10.4.0 ; sys_platform == "win32"
+# PyInstaller — only needed for building the EXE, not for running.
+pyinstaller==6.10.0 ; sys_platform == "win32"

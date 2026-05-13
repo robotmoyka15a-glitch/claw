@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-import shlex
-import subprocess
 import sys
 from typing import Any
 
@@ -198,10 +196,12 @@ async def _terminal_exec(command: str, timeout: float = 20.0) -> dict:
         if bad in low:
             raise ToolError(f"refused: command looks destructive ({bad!r})")
 
-    shell = sys.platform == "win32"
+    # FIX #3: не оборачивать команду в двойную оболочку на Linux.
+    # create_subprocess_shell уже использует /bin/sh -c, поэтому
+    # передаём команду как есть на всех платформах.
     try:
         proc = await asyncio.create_subprocess_shell(
-            cmd if shell else "bash -lc " + shlex.quote(cmd),
+            cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

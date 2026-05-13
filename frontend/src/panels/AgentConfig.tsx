@@ -12,7 +12,9 @@ export function AgentConfig({ agent }: Props) {
   const upsertAgent = useStore((s) => s.upsertAgent);
   const removeAgent = useStore((s) => s.removeAgent);
 
-  useEffect(() => setDraft(agent), [agent.id]);
+  // FIX #5: зависимость agent (весь объект), а не только agent.id.
+  // Если поля агента обновятся без смены id (upsertAgent) — draft синхронизируется.
+  useEffect(() => setDraft(agent), [agent]);
   useEffect(() => {
     api.providers().then(setProviders).catch(() => {});
     api.tools().then(setTools).catch(() => {});

@@ -11,6 +11,7 @@ export type PanelKey =
   | 'steam'
   | 'spotify'
   | 'notifications'
+  | 'settings'
   | 'agent-config'
   | 'agent-chat';
 

@@ -248,6 +248,11 @@ export function Room({ agents, states, snapshot, onSelect }: Props) {
   const cpuPaintingRef = useRef<{ push: (v: number) => void } | null>(null);
   const tickerRef = useRef<((t: Ticker) => void) | null>(null);
 
+  // FIX #1: stale closure — держим states в ref, который тикер читает каждый кадр.
+  // Без этого ticker захватывал бы начальный пустой {} и анимации никогда не работали.
+  const statesRef = useRef<Record<string, AgentState>>(states);
+  useEffect(() => { statesRef.current = states; }, [states]);
+
   // init pixi once
   useEffect(() => {
     let cancelled = false;
@@ -278,11 +283,11 @@ export function Room({ agents, states, snapshot, onSelect }: Props) {
         world.addChild(agentsLayer);
         agentsLayerRef.current = agentsLayer;
 
-        // Global ticker: gentle bob on thinking, pulse on tool.
-        const tick = (t: Ticker) => {
+        // Ticker читает statesRef.current — всегда свежие данные без лишних ре-рендеров.
+        const tick = (_t: Ticker) => {
           const time = performance.now() / 1000;
           visualsRef.current.forEach((v, agentId) => {
-            const st = states[agentId];
+            const st = statesRef.current[agentId];
             const status = st?.status ?? 'idle';
             if (status === 'thinking') {
               v.body.y = Math.sin(time * 3) * 1.5;
@@ -311,7 +316,7 @@ export function Room({ agents, states, snapshot, onSelect }: Props) {
       app.destroy(true, { children: true });
       appRef.current = null;
     };
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps -- намеренно: Pixi init только раз
 
   // redraw agents when the list changes (not state — that's handled by ticker)
   useEffect(() => {

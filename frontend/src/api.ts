@@ -81,6 +81,17 @@ export interface Notification {
   level: 'info' | 'warn' | 'error';
 }
 
+export interface SettingRow {
+  key: string;
+  value: string;
+  masked: boolean;
+  configured: boolean;
+  label: string;
+  group: string;
+  hint: string;
+  sensitive: boolean;
+}
+
 async function j<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
@@ -156,6 +167,15 @@ export const api = {
     }),
 
   pendingNotifications: () => j<Notification[]>('/api/connectors/notify/pending'),
+
+  // settings
+  getSettings: () => j<SettingRow[]>('/api/settings'),
+  updateSettings: (updates: Record<string, string>) =>
+    j<{ ok: boolean; updated: number }>('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({ updates }),
+    }),
+  envPath: () => j<{ path: string; exists: boolean }>('/api/settings/env-path'),
 };
 
 export function wsUrl(path: string): string {
