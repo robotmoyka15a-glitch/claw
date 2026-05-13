@@ -1,189 +1,311 @@
-# claw — Control Local Agents Workspace
+<div align="center">
 
-[![Build & Release EXE](https://github.com/robotmoyka15a-glitch/claw/actions/workflows/release.yml/badge.svg)](https://github.com/robotmoyka15a-glitch/claw/actions/workflows/release.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<br/>
 
-Локальный рабочий стол для управления ИИ-агентами на Windows.  
-Агенты «живут» в изометрической комнате и работают **автономно** — мониторят систему, читают VK/Telegram, управляют Spotify, выполняют shell-команды — через LLM tool-calling с вашей локальной моделью (Ollama / Qwen).
+```
+ ██████╗██╗      █████╗ ██╗    ██╗
+██╔════╝██║     ██╔══██╗██║    ██║
+██║     ██║     ███████║██║ █╗ ██║
+██║     ██║     ██╔══██║██║███╗██║
+╚██████╗███████╗██║  ██║╚███╔███╔╝
+ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝
+```
 
----
+### Control Local Agents Workspace
 
-## ⬇️ Быстрый старт — скачать готовый EXE
+*Твои ИИ-агенты живут в изометрической комнате и работают сами*
 
-**→ [Releases → скачать claw.exe](https://github.com/robotmoyka15a-glitch/claw/releases/latest)**
+<br/>
 
-1. Скачай `claw.exe` со страницы Releases  
-2. Запусти — браузер откроется на `http://127.0.0.1:8765` автоматически  
-3. Открой **⚙️ Настройки** и вставь токены (VK, Telegram, LLM и т.д.)  
-4. Кликни на агента в комнате → начни чат или настрой автономные задачи
+[![Build](https://github.com/robotmoyka15a-glitch/claw/actions/workflows/release.yml/badge.svg)](https://github.com/robotmoyka15a-glitch/claw/actions/workflows/release.yml)&nbsp;
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)&nbsp;
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)&nbsp;
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)&nbsp;
+[![License](https://img.shields.io/badge/License-MIT-F5B301)](LICENSE)
 
-> Требования: Windows 10/11 x64, 4 ГБ RAM  
-> Ollama нужен только для локальных LLM — без него работает с Qwen cloud
+<br/>
 
----
+**[⬇️ Скачать claw.exe](https://github.com/robotmoyka15a-glitch/claw/releases/latest)** &nbsp;·&nbsp;
+**[📖 Документация](#быстрый-старт)** &nbsp;·&nbsp;
+**[🐛 Сообщить о проблеме](https://github.com/robotmoyka15a-glitch/claw/issues)**
 
-## Возможности
+<br/>
 
-| Раздел | Что умеет |
-|---|---|
-| 🏠 **Изометрическая комната** | Pixi.js 2.5D, агенты за столами, анимации, частицы, CPU-картина на стене |
-| 🤖 **ИИ-агенты** | 5 пресетов (Chief, Sys, Vika, Shell, Lex), tool-calling, делегирование |
-| 🔄 **Автономия** | Задачи по расписанию / событиям (CPU > 85%, новый процесс, Telegram-сообщение) |
-| 🧠 **ModelRouter** | Автовыбор провайдера под задачу + fallback-цепочка |
-| 📊 **Мониторинг** | CPU/RAM/Disk/Net в реальном времени, список процессов (diff WebSocket) |
-| 💻 **Терминал** | Встроенный Windows PTY (pywinpty), xterm.js |
-| 💙 **ВКонтакте** | Лента, друзья, поиск постов, лайки, сообщения |
-| ✈️ **Telegram** | Long-poll + Webhook, автоматическая реакция на входящие сообщения |
-| 🎮 **Discord** | Чтение/отправка сообщений через Bot API |
-| 🎯 **Steam** | Профиль, библиотека, статистика |
-| 🎵 **Spotify** | Now Playing с прогресс-баром, управление воспроизведением |
-| 🔔 **Уведомления** | Windows tray + dashboard toast от агентов (`notify.toast`) |
-| ⚙️ **Настройки в UI** | Все токены вводятся прямо в браузере, без редактирования файлов |
-| 🤖 **Модели LLM** | Мониторинг Ollama/Qwen: VRAM статус, pull новых моделей, удаление |
-| 🔒 **Безопасность** | CSRF-токен, шифрование `.env`, маскировка логов, rate limiter |
+</div>
 
 ---
 
-## LLM провайдеры
+<div align="center">
 
-| Провайдер | Настройка | Рекомендуемые модели |
+## Что такое claw?
+
+</div>
+
+**claw** — это личный рабочий стол, где ИИ-агенты сидят за столами в изометрической комнате и выполняют задачи вместо тебя. Они следят за системой, читают твои соцсети, управляют музыкой и выполняют команды в терминале — используя твои локальные языковые модели (Ollama / Qwen).
+
+Всё работает **локально на твоём компьютере**. Никаких облаков, никакой телеметрии.
+
+<br/>
+
+---
+
+<div align="center">
+
+## ✨ Возможности
+
+</div>
+
+<table>
+<tr>
+<td width="50%">
+
+### 🏠 Изометрическая комната
+Агенты сидят за столами в 2.5D пространстве (Pixi.js). Лампы мигают когда агент думает, пузырьки показывают что он делает. Живая CPU-диаграмма на стене. Плавающие частицы пыли. Ковёр, полки с книгами, растения.
+
+</td>
+<td width="50%">
+
+### 🤖 Автономные агенты
+Агенты работают без тебя по расписанию или событиям. CPU вырос выше 85%? → агент `Sys` просыпается и находит причину. Пришло Telegram-сообщение? → агент `Vika` читает и отвечает. Всё через LLM tool-calling.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🧠 ModelRouter
+Умный маршрутизатор моделей. Автоматически выбирает лучший провайдер под задачу — Ollama, Qwen local или Qwen cloud. Если провайдер недоступен — переключается на следующий в цепочке.
+
+</td>
+<td width="50%">
+
+### 🔧 24 инструмента
+Каждый агент может вызывать инструменты: смотреть процессы, убивать их, читать ленту ВК, ставить лайки, писать сообщения, управлять Spotify, выполнять shell-команды с таймаутом.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 💬 Telegram интеграция
+Агент получает сообщения через long-poll или Webhook (ngrok/cloudflare). Реагирует мгновенно — отвечает, пересылает, анализирует. Настраивается триггер прямо в UI.
+
+</td>
+<td width="50%">
+
+### 🔒 Безопасность
+CSRF-токен на каждый запрос. Опциональное шифрование `.env` мастер-паролем. Маскировка токенов в логах. Rate limiter. Всё работает на `127.0.0.1` — внешний трафик исключён.
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+---
+
+<div align="center">
+
+## 🤖 Агенты в комнате
+
+</div>
+
+| Агент | Роль | Инструменты |
 |---|---|---|
-| **Ollama** (локально) | `OLLAMA_BASE_URL=http://127.0.0.1:11434` | `qwen2.5:7b`, `llama3.1:8b` |
-| **Qwen local** (OpenAI-compat) | `QWEN_LOCAL_BASE_URL=http://127.0.0.1:8000/v1` | LM Studio, vLLM |
-| **Qwen cloud** (DashScope) | `QWEN_CLOUD_API_KEY=sk-...` | `qwen-plus`, `qwen-max` |
+| 🟡 **Chief** | Главный — координирует остальных | `agents.delegate` · `system.snapshot` · `notify.toast` |
+| 🟢 **Sys** | Сисадмин Windows | `processes.list/detail/kill` · `system.snapshot` · `terminal.exec` |
+| 🔵 **Vika** | Соцсети | `vk.*` · `telegram.get_updates` · `discord.read` |
+| 🟣 **Shell** | Терминал | `terminal.exec` |
+| 🩷 **Lex** | Исследователь | без инструментов (чат и анализ) |
 
-**ModelRouter** автоматически выбирает лучший провайдер под задачу:
-- Задача с tool-calling → модель с высоким `tool_calling` score
-- Длинный контекст → `qwen-long` (1M токенов)
-- Облако недоступно → автоматически переключается на local
-
----
-
-## Автономные агенты
-
-Агенты работают сами, без участия пользователя:
-
-```
-CPU > 85%     →  агент Sys просыпается → находит виновный процесс → notify.toast
-Новое TG-сообщение → агент Vika читает → отвечает или пересылает
-Каждые 5 мин  →  агент Chief проверяет статус системы
-Новый процесс →  агент Sys проверяет подозрительность
-```
-
-Панель **🤖 Автономия** в дашборде:
-- **Задачи** — создать, настроить триггер (manual / interval / cron / event), запустить
-- **События** — живой лог всего что происходит в системе  
-- **Роутер** — визуальная capability-матрица всех моделей
+<br/>
 
 ---
 
-## Коннекторы — как получить токены
+<div align="center">
 
-### ВКонтакте
+## ⚡ Быстрый старт
+
+</div>
+
+### Вариант 1 — Скачать готовый EXE (рекомендуется)
+
 ```
-https://oauth.vk.com/authorize?client_id=ВАШ_APP_ID&display=page
-  &redirect_uri=https://oauth.vk.com/blank.html
-  &scope=friends,wall,messages,offline&response_type=token&v=5.199
+1. Перейди на страницу Releases
+2. Скачай claw.exe
+3. Запусти — браузер откроется автоматически
+4. Открой ⚙️ Настройки и вставь токены
 ```
-Токен появится в URL: `#access_token=...`
 
-### Telegram
-1. Напиши [@BotFather](https://t.me/BotFather) → `/newbot` → получи токен `123456789:AAA...`
-2. Напиши боту → открой `https://api.telegram.org/bot<TOKEN>/getUpdates` → найди `"chat":{"id":...}`
-3. Для Webhook: задай `TELEGRAM_WEBHOOK_URL=https://твой-домен/webhook/telegram`
-
-### Discord
-1. [discord.com/developers](https://discord.com/developers/applications) → New Application → Bot
-2. Скопируй Token с вкладки Bot
-3. ID канала: Developer Mode → ПКМ на канал → Copy Channel ID
-
-### Steam
-- Ключ: [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey)
-- SteamID64: [steamid.io](https://steamid.io) (17 цифр, начинается с 7656...)
-
-### Spotify
-1. [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → Create App
-2. Redirect URI: `http://localhost:8888/callback`
-3. Авторизация (вставь CLIENT_ID):
-```
-https://accounts.spotify.com/authorize?client_id=CLIENT_ID
-  &response_type=code&redirect_uri=http://localhost:8888/callback
-  &scope=user-read-currently-playing%20user-read-playback-state%20user-modify-playback-state
-```
-4. Обменяй `?code=...` на refresh_token через POST к Spotify
+> **[→ Скачать последнюю версию](https://github.com/robotmoyka15a-glitch/claw/releases/latest)**
 
 ---
 
-## Запуск из исходников
+### Вариант 2 — Из исходников
 
 ```powershell
 git clone https://github.com/robotmoyka15a-glitch/claw.git
 cd claw
 copy backend\.env.example backend\.env
-# отредактируй backend\.env — добавь токены
+# Открой backend\.env и вставь токены
 run.bat
 ```
 
-Скрипт создаст venv, поставит зависимости, поднимет оба сервера:
-- Backend → `http://127.0.0.1:8765`
-- Frontend (dev) → `http://127.0.0.1:5173`
+Откроется:
+- `http://127.0.0.1:5173` — фронтенд (dev-режим)
+- `http://127.0.0.1:8765` — backend API
 
 ---
 
-## Сборка EXE самостоятельно
+### Вариант 3 — Собрать EXE
 
 ```powershell
 git clone https://github.com/robotmoyka15a-glitch/claw.git
 cd claw
-build_exe.bat   # собирает frontend + PyInstaller → backend\dist\claw.exe
+build_exe.bat    # ~3-5 минут → backend\dist\claw.exe
 ```
 
-Скрипт (~3-5 минут):
-1. Собирает React фронтенд (`npm run build`)
-2. Создаёт Python venv
-3. Запускает PyInstaller с `claw.spec`
-4. Кладёт готовый EXE в `backend/dist/claw.exe`
+<br/>
 
 ---
 
-## Структура проекта
+<div align="center">
 
-```
-claw/
-├── backend/                Python FastAPI
-│   ├── app/
-│   │   ├── agents/         агенты, автономия, планировщик, ModelRouter
-│   │   ├── api/            REST + WebSocket эндпоинты (72 маршрута)
-│   │   ├── connectors/     Telegram, Discord, Steam, Spotify, Windows
-│   │   ├── core/           config, db, security, ws_manager, http_pool
-│   │   ├── llm/            Ollama, OpenAI-compat, router с fallback
-│   │   ├── services/       psutil, terminal PTY, VK API
-│   │   └── tools/          24 инструмента для tool-calling
-│   ├── claw.spec           PyInstaller spec
-│   ├── launcher.py         точка входа EXE (tray + auto browser)
-│   └── requirements.txt
-├── frontend/               React + Vite + TypeScript
-│   └── src/
-│       ├── panels/         Terminal, ProcessList, VKFeed, Autonomy, Models…
-│       └── scene/          Room (Pixi.js, изометрия, анимации)
-├── .github/workflows/      GitHub Actions — автосборка EXE при теге
-├── build_exe.bat           сборка в один EXE
-└── run.bat / run.sh        запуск для разработки
-```
+## 🔌 Поддерживаемые сервисы
+
+</div>
+
+<div align="center">
+
+| Сервис | Что умеет |
+|---|---|
+| 🤖 **Ollama** | Любые локальные модели: Qwen 2.5, LLaMA 3.1, Mistral... |
+| ☁️ **Qwen Cloud** | DashScope API, qwen-plus/max/long (1M контекст) |
+| 💙 **ВКонтакте** | Лента, друзья, поиск, лайки, сообщения |
+| ✈️ **Telegram** | Long-poll + Webhook, автоответ, триггеры |
+| 🎮 **Discord** | Чтение и отправка сообщений |
+| 🎯 **Steam** | Профиль, библиотека, статистика |
+| 🎵 **Spotify** | Now Playing с прогресс-баром, управление |
+| 🔔 **Windows** | Toast-уведомления, системный трей |
+
+</div>
+
+<br/>
 
 ---
 
-## Безопасность
+<div align="center">
 
-- Бэкенд слушает только `127.0.0.1` — не доступен из сети  
-- Каждый мутирующий запрос требует `X-Claw-Token` заголовок (CSRF защита)  
-- Токены можно зашифровать: задай `CLAW_MASTER_PASSWORD` и используй `security.py encrypt_value()`  
-- Все логи автоматически маскируют `Bearer ...`, `access_token=...`, `sk-...`  
-- **Не открывай порт 8765 наружу** без добавления аутентификации
+## 🏗 Архитектура
+
+</div>
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Браузер (React + Pixi.js)                 │
+│                                                             │
+│  ┌──────────────────────────┐  ┌──────────────────────────┐ │
+│  │   Изометрическая комната  │  │  Floating Panels (16шт)  │ │
+│  │   (Pixi.js WebGL)        │  │  Terminal · Processes    │ │
+│  │   агенты за столами       │  │  VK · Telegram · Spotify │ │
+│  │   анимации статуса        │  │  Autonomy · Models · ... │ │
+│  └──────────────────────────┘  └──────────────────────────┘ │
+│              ▲  WebSocket + REST                             │
+└──────────────┼──────────────────────────────────────────────┘
+               │
+┌──────────────┼──────────────────────────────────────────────┐
+│         FastAPI @ 127.0.0.1:8765  (70 маршрутов)            │
+│                                                             │
+│  Agents ──▶ ModelRouter ──▶ Ollama / Qwen local / Cloud     │
+│     │            │                                          │
+│  Tools (24)   Autonomy                                      │
+│  ├ system     ├ EventBus (cpu_high, tg_message, ...)        │
+│  ├ processes  ├ Scheduler (interval / cron / event)         │
+│  ├ vk         └ Plan-and-Execute loop                       │
+│  ├ telegram                                                  │
+│  ├ discord    Connectors: Telegram long-poll / Webhook       │
+│  ├ steam      Security: CSRF · rate limit · enc .env         │
+│  └ spotify    DB: SQLite (agents, tasks, history)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+<br/>
 
 ---
 
-## Лицензия
+<div align="center">
 
-MIT — делай что хочешь, но без гарантий.
+## 📦 Что внутри EXE
+
+</div>
+
+Когда запускаешь `claw.exe`:
+
+1. **Создаётся** `%LOCALAPPDATA%\claw\.env` с шаблоном токенов
+2. **Запускается** FastAPI backend на `127.0.0.1:8765`
+3. **Открывается** браузер автоматически
+4. **Появляется** иконка в системном трее (правый клик → открыть / выход)
+
+Один файл содержит:
+- Python runtime + все зависимости
+- Собранный React фронтенд
+- SQLite для хранения агентов и истории
+
+> **Требования:** Windows 10/11 x64 · 4 ГБ RAM
+> Ollama нужен для локальных LLM. Без него — работает с Qwen cloud.
+
+<br/>
+
+---
+
+<div align="center">
+
+## 🛠 Стек технологий
+
+</div>
+
+<div align="center">
+
+**Backend**
+
+![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=flat&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
+![WebSocket](https://img.shields.io/badge/WebSocket-000000?style=flat)
+![psutil](https://img.shields.io/badge/psutil-FF6B35?style=flat)
+![pywinpty](https://img.shields.io/badge/pywinpty-0078D7?style=flat)
+
+**Frontend**
+
+![React](https://img.shields.io/badge/React_18-61DAFB?style=flat&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Pixi.js](https://img.shields.io/badge/Pixi.js-E72264?style=flat)
+![xterm.js](https://img.shields.io/badge/xterm.js-000000?style=flat)
+![Tailwind](https://img.shields.io/badge/Tailwind-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+
+**LLM**
+
+![Ollama](https://img.shields.io/badge/Ollama-000000?style=flat)
+![Qwen](https://img.shields.io/badge/Qwen-FF6A00?style=flat)
+![OpenAI Compatible](https://img.shields.io/badge/OpenAI--compat-412991?style=flat&logo=openai&logoColor=white)
+
+</div>
+
+<br/>
+
+---
+
+<div align="center">
+
+## 📄 Лицензия
+
+**MIT** — используй свободно, без гарантий.
+
+<br/>
+
+---
+
+*Сделан как персональный рабочий стол для тех, кто хочет чтобы ИИ работал для них — а не наоборот*
+
+</div>
