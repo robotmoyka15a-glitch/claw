@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api, type Agent, type ProviderInfo } from '../api';
+import { useEffect, useMemo, useState } from 'react';
+import { api, type Agent, type ProviderInfo, type ToolInfo } from '../api';
 import { useStore } from '../store';
 
 interface Props { agent: Agent }
@@ -7,14 +7,31 @@ interface Props { agent: Agent }
 export function AgentConfig({ agent }: Props) {
   const [draft, setDraft] = useState<Agent>(agent);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
+  const [tools, setTools] = useState<ToolInfo[]>([]);
   const [saving, setSaving] = useState(false);
   const upsertAgent = useStore((s) => s.upsertAgent);
   const removeAgent = useStore((s) => s.removeAgent);
 
   useEffect(() => setDraft(agent), [agent.id]);
-  useEffect(() => { api.providers().then(setProviders).catch(() => {}); }, []);
+  useEffect(() => {
+    api.providers().then(setProviders).catch(() => {});
+    api.tools().then(setTools).catch(() => {});
+  }, []);
 
   const providerInfo = providers.find((p) => p.key === draft.llm_provider);
+
+  const byCategory = useMemo(() => {
+    const m: Record<string, ToolInfo[]> = {};
+    for (const t of tools) (m[t.category] ??= []).push(t);
+    return m;
+  }, [tools]);
+
+  const toggleTool = (name: string) => {
+    const allowed = new Set(draft.allowed_tools ?? []);
+    if (allowed.has(name)) allowed.delete(name);
+    else allowed.add(name);
+    setDraft({ ...draft, allowed_tools: [...allowed] });
+  };
 
   const save = async () => {
     setSaving(true);
@@ -26,6 +43,7 @@ export function AgentConfig({ agent }: Props) {
         system_prompt: draft.system_prompt,
         temperature: draft.temperature,
         color: draft.color,
+        allowed_tools: draft.allowed_tools,
       });
       upsertAgent(updated);
     } finally {
@@ -54,9 +72,7 @@ export function AgentConfig({ agent }: Props) {
             onChange={(e) => setDraft({ ...draft, llm_provider: e.target.value, llm_model: '' })}
           >
             {providers.map((p) => (
-              <option key={p.key} value={p.key}>
-                {p.key}
-              </option>
+              <option key={p.key} value={p.key}>{p.key}</option>
             ))}
           </select>
         </label>
@@ -68,9 +84,7 @@ export function AgentConfig({ agent }: Props) {
           >
             <option value="">{providerInfo?.default_model ?? 'default'} (по умолчанию)</option>
             {providerInfo?.models.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
+              <option key={m} value={m}>{m}</option>
             ))}
           </select>
         </label>
@@ -93,9 +107,53 @@ export function AgentConfig({ agent }: Props) {
         <textarea
           value={draft.system_prompt}
           onChange={(e) => setDraft({ ...draft, system_prompt: e.target.value })}
-          style={{ minHeight: 140 }}
+          style={{ minHeight: 120 }}
         />
       </label>
+
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400">Инструменты ({draft.allowed_tools?.length ?? 0})</span>
+          <span className="text-xs text-gray-500">
+            отмечай, что можно вызывать LLM-у
+          </span>
+        </div>
+        <div className="border border-white/10 rounded p-2 max-h-48 overflow-auto space-y-2">
+          {Object.entries(byCategory).map(([cat, list]) => (
+            <div key={cat}>
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">{cat}</div>
+              {list.map((t) => {
+                const on = (draft.allowed_tools ?? []).includes(t.name);
+                return (
+                  <label
+                    key={t.name}
+                    className="flex items-start gap-2 py-0.5 cursor-pointer hover:bg-white/5 rounded px-1"
+                    title={t.description}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => toggleTool(t.name)}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="font-mono text-xs">
+                        {t.name}
+                        {t.dangerous && (
+                          <span className="ml-1 text-[10px] text-red-400">DANGER</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-gray-400 leading-tight">
+                        {t.description}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
 
       <label className="flex flex-col gap-1">
         <span className="text-gray-400">Цвет</span>

@@ -1,3 +1,8 @@
+export interface AgentState {
+  status: 'idle' | 'thinking' | 'tool';
+  last_tool: string | null;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -9,6 +14,8 @@ export interface Agent {
   llm_model: string;
   system_prompt: string;
   temperature: number;
+  allowed_tools: string[];
+  state?: AgentState;
 }
 
 export interface ProviderInfo {
@@ -24,6 +31,21 @@ export interface Preset {
   title: string;
   desk: string;
   color: string;
+  default_tools: string[];
+}
+
+export interface ToolInfo {
+  name: string;
+  description: string;
+  category: string;
+  dangerous: boolean;
+  tags: string[];
+  parameters: Record<string, any>;
+}
+
+export interface ConnectorStatus {
+  key: string;
+  configured: boolean;
 }
 
 export interface SystemSnapshot {
@@ -50,6 +72,13 @@ export interface ProcessRow {
   cpu: number;
   rss_mb: number;
   threads: number;
+}
+
+export interface Notification {
+  ts: number;
+  title: string;
+  message: string;
+  level: 'info' | 'warn' | 'error';
 }
 
 async function j<T>(path: string, init?: RequestInit): Promise<T> {
@@ -84,10 +113,49 @@ export const api = {
   messages: (id: string) =>
     j<{ role: string; content: string; ts: number }[]>(`/api/agents/${id}/messages`),
 
-  // vk
+  // tools
+  tools: () => j<ToolInfo[]>('/api/tools'),
+
+  // connectors
+  connectorStatus: () => j<ConnectorStatus[]>('/api/connectors/status'),
+
   vkMe: () => j<any>('/api/vk/me'),
   vkFriends: () => j<any>('/api/vk/friends/online'),
   vkFeed: (n = 25) => j<any>(`/api/vk/newsfeed?count=${n}`),
+
+  tgMe: () => j<any>('/api/connectors/telegram/me'),
+  tgUpdates: (n = 20) => j<any>(`/api/connectors/telegram/updates?limit=${n}`),
+  tgSend: (text: string, chat_id?: string) =>
+    j<any>('/api/connectors/telegram/send', {
+      method: 'POST',
+      body: JSON.stringify({ text, chat_id }),
+    }),
+
+  dcMe: () => j<any>('/api/connectors/discord/me'),
+  dcMessages: (n = 20, channel_id?: string) =>
+    j<any>(
+      `/api/connectors/discord/messages?limit=${n}${
+        channel_id ? `&channel_id=${channel_id}` : ''
+      }`,
+    ),
+  dcSend: (content: string, channel_id?: string) =>
+    j<any>('/api/connectors/discord/send', {
+      method: 'POST',
+      body: JSON.stringify({ content, channel_id }),
+    }),
+
+  steamSummary: () => j<any>('/api/connectors/steam/summary'),
+  steamRecent: (n = 5) => j<any>(`/api/connectors/steam/recent?count=${n}`),
+  steamOwned: (n = 50) => j<any>(`/api/connectors/steam/owned?limit=${n}`),
+
+  spotifyNow: () => j<any>('/api/connectors/spotify/now'),
+  spotifyControl: (action: 'pause' | 'resume' | 'next') =>
+    j<any>('/api/connectors/spotify/control', {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
+
+  pendingNotifications: () => j<Notification[]>('/api/connectors/notify/pending'),
 };
 
 export function wsUrl(path: string): string {

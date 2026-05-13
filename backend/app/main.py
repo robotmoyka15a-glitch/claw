@@ -9,8 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.agents.manager import seed_defaults_if_empty
 from app.api import agents as agents_api
+from app.api import connectors as connectors_api
 from app.api import system as system_api
 from app.api import terminal as terminal_api
+from app.api import tools as tools_api
 from app.api import vk as vk_api
 from app.core.config import get_settings
 from app.core.db import init_db
@@ -39,6 +41,8 @@ def create_app() -> FastAPI:
     app.include_router(system_api.router)
     app.include_router(vk_api.router)
     app.include_router(agents_api.router)
+    app.include_router(connectors_api.router)
+    app.include_router(tools_api.router)
 
     # WebSocket
     app.include_router(system_api.ws_router)

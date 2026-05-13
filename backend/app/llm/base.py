@@ -1,10 +1,22 @@
-"""Common LLM provider interface. Streaming is modeled as an async iterator
-of string deltas. Non-streaming calls just concatenate the stream.
+"""Common LLM provider interface with tool-calling support.
+
+A provider's stream_chat(...) yields a sequence of `ChatEvent` objects:
+
+    TextDelta(text)            — streaming text from the assistant
+    ToolCallEvent(id, name,    — the assistant wants to call a tool. All
+                  arguments)    arguments are already accumulated.
+    DoneEvent(finish_reason)   — end of turn.
+
+If the model chose to call tools, the assistant turn finishes with a DoneEvent
+whose finish_reason is 'tool_calls'. The manager is expected to:
+    1. persist an assistant message with the raw tool_calls payload,
+    2. execute each tool,
+    3. feed 'tool' role messages back into stream_chat, and call it again.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import AsyncIterator, Literal, Protocol
+from dataclasses import dataclass, field
+from typing import Any, AsyncIterator, Literal, Optional, Protocol, Union
 
 
 Role = Literal["system", "user", "assistant", "tool"]
@@ -14,10 +26,49 @@ Role = Literal["system", "user", "assistant", "tool"]
 class LLMMessage:
     role: Role
     content: str
+    # Populated only for role="assistant" messages that triggered tool calls,
+    # or for role="tool" messages providing the result of one call.
+    tool_calls: Optional[list[dict]] = None  # [{"id","name","arguments"(str)}]
+    tool_call_id: Optional[str] = None       # set on role="tool" messages
+    name: Optional[str] = None               # tool name for role="tool"
+
+
+@dataclass
+class TextDelta:
+    text: str
+    type: str = "text"
+
+
+@dataclass
+class ToolCallEvent:
+    id: str
+    name: str
+    arguments: str   # JSON string as produced by the model
+    type: str = "tool_call"
+
+
+@dataclass
+class DoneEvent:
+    finish_reason: str = "stop"  # 'stop' | 'tool_calls' | 'length' | ...
+    type: str = "done"
+
+
+ChatEvent = Union[TextDelta, ToolCallEvent, DoneEvent]
+
+
+@dataclass
+class ToolSpec:
+    """Provider-agnostic description of a tool. Adapters translate it into
+    the wire format expected by each provider."""
+
+    name: str
+    description: str
+    parameters: dict
 
 
 class LLMProvider(Protocol):
     name: str
+    default_model: str
 
     async def list_models(self) -> list[str]: ...
 
@@ -26,11 +77,5 @@ class LLMProvider(Protocol):
         messages: list[LLMMessage],
         model: str,
         temperature: float = 0.7,
-    ) -> AsyncIterator[str]: ...
-
-    async def chat(
-        self,
-        messages: list[LLMMessage],
-        model: str,
-        temperature: float = 0.7,
-    ) -> str: ...
+        tools: list[ToolSpec] = ...,  # type: ignore[assignment]
+    ) -> AsyncIterator[ChatEvent]: ...

@@ -41,6 +41,31 @@ class Settings(BaseSettings):
     qwen_cloud_api_key: str = ""
     qwen_cloud_default_model: str = "qwen-plus"
 
+    # --- Telegram (Bot API) ---
+    # Create a bot via @BotFather, paste the token. For read-only monitoring of
+    # a private chat you can set the numeric chat id to fetch updates from.
+    telegram_bot_token: str = ""
+    telegram_default_chat_id: str = ""
+
+    # --- Discord (Bot) ---
+    # Create a bot application, copy the token from "Bot" tab. Claw uses the
+    # REST API only — no gateway websocket — so no intents setup is required.
+    discord_bot_token: str = ""
+    discord_default_channel_id: str = ""
+
+    # --- Steam Web API ---
+    # Register a key at https://steamcommunity.com/dev/apikey
+    steam_api_key: str = ""
+    steam_user_id: str = ""  # SteamID64
+
+    # --- Spotify (Client Credentials + optional Authorization Code) ---
+    # For now-playing / playback control you need a user access token obtained
+    # via the Authorization Code flow. Store the refresh token here and claw
+    # will refresh it automatically.
+    spotify_client_id: str = ""
+    spotify_client_secret: str = ""
+    spotify_refresh_token: str = ""
+
     # --- storage ---
     claw_db_path: str = "data/claw.sqlite"
 

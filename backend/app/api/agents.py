@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 from app.agents import manager, presets
+from app.core.ws_manager import ws_manager
 from app.llm import get_provider, list_providers
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
@@ -21,6 +22,7 @@ class AgentCreate(BaseModel):
     llm_model: str = ""
     system_prompt: Optional[str] = None
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    allowed_tools: Optional[List[str]] = None
 
 
 class AgentUpdate(BaseModel):
@@ -31,6 +33,7 @@ class AgentUpdate(BaseModel):
     llm_model: Optional[str] = None
     system_prompt: Optional[str] = None
     temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0)
+    allowed_tools: Optional[List[str]] = None
 
 
 @router.get("/presets")
@@ -71,6 +74,11 @@ async def create_agent(data: AgentCreate):
     return await manager.create_agent(data.model_dump())
 
 
+@router.get("/states")
+async def agent_states():
+    return manager.current_states()
+
+
 @router.get("/{agent_id}")
 async def get_agent(agent_id: str):
     a = await manager.get_agent(agent_id)
@@ -96,11 +104,11 @@ async def delete_agent(agent_id: str):
 
 
 @router.get("/{agent_id}/messages")
-async def messages(agent_id: str, limit: int = 100):
+async def messages(agent_id: str, limit: int = 200):
     return await manager.list_messages(agent_id, limit=limit)
 
 
-# ------- chat via WebSocket (streamed) -------
+# ------- chat via WebSocket (streamed with tool events) -------
 
 ws_router = APIRouter()
 
@@ -121,8 +129,29 @@ async def ws_agent_chat(ws: WebSocket, agent_id: str):
             if not text:
                 continue
             await ws.send_json({"type": "start"})
-            async for delta in manager.stream_reply(agent_id, text):
-                await ws.send_json({"type": "delta", "text": delta})
-            await ws.send_json({"type": "end"})
+            try:
+                async for event in manager.stream_events(agent_id, text):
+                    await ws.send_json(event)
+            except Exception as e:  # noqa: BLE001
+                await ws.send_json({"type": "error", "error": str(e)})
     except WebSocketDisconnect:
         return
+
+
+@ws_router.websocket("/ws/agents-state")
+async def ws_agents_state(ws: WebSocket):
+    """Global agent-state stream. Receives status updates for every agent,
+    regardless of whether its chat panel is open. Used by the room scene to
+    animate avatars.
+    """
+    await ws_manager.connect("agents-state", ws)
+    # Send initial snapshot.
+    try:
+        await ws.send_json({"type": "snapshot", "agents": manager.current_states()})
+        while True:
+            # Keep the connection alive; we don't expect client messages.
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await ws_manager.disconnect("agents-state", ws)

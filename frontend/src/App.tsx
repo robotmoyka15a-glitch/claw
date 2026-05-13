@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { api } from './api';
+import { api, type SystemSnapshot } from './api';
 import { useStore, type PanelKey } from './store';
 import { Room } from './scene/Room';
 import { PanelFrame } from './panels/PanelFrame';
@@ -7,22 +7,76 @@ import { Terminal } from './panels/Terminal';
 import { SystemStats } from './panels/SystemStats';
 import { ProcessList } from './panels/ProcessList';
 import { VKFeed } from './panels/VKFeed';
+import { TelegramPanel } from './panels/Telegram';
+import { DiscordPanel } from './panels/Discord';
+import { SteamPanel } from './panels/Steam';
+import { SpotifyPanel } from './panels/Spotify';
+import { ToastLayer } from './panels/Toasts';
 import { AgentConfig } from './panels/AgentConfig';
 import { AgentChat } from './panels/AgentChat';
+import { useWS } from './hooks/useWS';
 
-const GLOBAL_PANELS: { key: PanelKey; title: string; size: [number, number] }[] = [
+// All panels selectable from the top dock. The list is filtered by connector
+// status so we never show panels for services that aren't configured.
+const ALL_PANELS: { key: PanelKey; title: string; size: [number, number]; connector?: string }[] = [
   { key: 'terminal', title: 'Терминал', size: [640, 420] },
   { key: 'processes', title: 'Процессы', size: [560, 420] },
   { key: 'system', title: 'Система', size: [520, 320] },
-  { key: 'vk', title: 'ВКонтакте', size: [420, 520] },
+  { key: 'vk', title: 'ВКонтакте', size: [420, 520], connector: 'vk' },
+  { key: 'telegram', title: 'Telegram', size: [420, 520], connector: 'telegram' },
+  { key: 'discord', title: 'Discord', size: [420, 520], connector: 'discord' },
+  { key: 'steam', title: 'Steam', size: [420, 520], connector: 'steam' },
+  { key: 'spotify', title: 'Spotify', size: [360, 260], connector: 'spotify' },
 ];
 
 export default function App() {
-  const { agents, setAgents, openPanels, openPanel, closePanel } = useStore();
+  const {
+    agents,
+    setAgents,
+    upsertAgent,
+    openPanels,
+    openPanel,
+    closePanel,
+    connectors,
+    setConnectors,
+    setAgentState,
+    setSnapshot,
+    pushToast,
+  } = useStore();
 
+  // Initial fetches
   useEffect(() => {
     api.listAgents().then(setAgents).catch(console.error);
-  }, [setAgents]);
+    api.connectorStatus().then(setConnectors).catch(() => {});
+  }, [setAgents, setConnectors]);
+
+  // Live agent-state subscription (drives the room animations)
+  useWS<{ type?: string; agent_id?: string; state?: any; agents?: any[] }>(
+    '/ws/agents-state',
+    (msg) => {
+      if (msg.type === 'snapshot' && Array.isArray(msg.agents)) {
+        for (const { agent_id, state } of msg.agents) setAgentState(agent_id, state);
+      } else if (msg.agent_id && msg.state) {
+        setAgentState(msg.agent_id, msg.state);
+      }
+    },
+  );
+
+  // Live system snapshot — feeds the CPU painting and the Stats panel legend
+  useWS<SystemSnapshot>('/ws/system', (snap) => setSnapshot(snap));
+
+  // Poll pending notifications from backend (agents calling notify.toast)
+  useEffect(() => {
+    const t = setInterval(async () => {
+      try {
+        const list = await api.pendingNotifications();
+        for (const n of list) {
+          pushToast({ title: n.title, message: n.message, level: n.level, ts: n.ts });
+        }
+      } catch {/* backend may be down, ignore */}
+    }, 3000);
+    return () => clearInterval(t);
+  }, [pushToast]);
 
   const onAgentClick = (agentId: string) => {
     const a = agents.find((x) => x.id === agentId);
@@ -31,14 +85,29 @@ export default function App() {
     openPanel({ key: 'agent-config', title: `${a.name} · настройки`, agentId });
   };
 
+  const connectorOk = (key?: string) => {
+    if (!key) return true;
+    return connectors.find((c) => c.key === key)?.configured ?? true;
+    // ^ if the status list hasn't loaded yet, show the button optimistically
+  };
+
+  const visiblePanels = ALL_PANELS.filter((p) => connectorOk(p.connector));
+
+  const snapshot = useStore((s) => s.snapshot);
+  const agentStates = useStore((s) => s.agentStates);
+
   return (
     <div className="relative w-screen h-screen">
-      {/* 1. isometric room */}
-      <Room agents={agents} onSelect={onAgentClick} />
+      <Room
+        agents={agents}
+        states={agentStates}
+        snapshot={snapshot}
+        onSelect={onAgentClick}
+      />
 
-      {/* 2. top dock */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-2">
-        {GLOBAL_PANELS.map((p) => (
+      {/* top dock */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 max-w-[75vw] justify-center">
+        {visiblePanels.map((p) => (
           <button
             key={p.key}
             className="btn"
@@ -51,26 +120,23 @@ export default function App() {
           className="btn"
           onClick={() => {
             api
-              .createAgent({
-                preset: 'researcher',
-                name: 'Новый',
-                desk: 'spare',
-              })
-              .then((a) => {
-                useStore.getState().upsertAgent(a);
-              });
+              .createAgent({ preset: 'researcher', name: 'Новый', desk: 'spare' })
+              .then(upsertAgent);
           }}
         >
           + агент
         </button>
       </div>
 
-      {/* 3. title / brand */}
+      {/* brand */}
       <div className="absolute top-3 left-4 text-sm text-gray-400 pointer-events-none">
         <span className="text-[#f5b301] font-bold">claw</span> · рабочая комната
       </div>
 
-      {/* 4. open panels */}
+      {/* toast layer */}
+      <ToastLayer />
+
+      {/* draggable panels */}
       {openPanels.map((p, i) => (
         <PanelFrame
           key={`${p.key}-${p.agentId ?? 'global'}`}
@@ -81,12 +147,12 @@ export default function App() {
             y: 70 + i * 24,
             w:
               p.key === 'agent-chat' ? 520 :
-              p.key === 'agent-config' ? 420 :
-              GLOBAL_PANELS.find((g) => g.key === p.key)?.size[0] ?? 480,
+              p.key === 'agent-config' ? 440 :
+              ALL_PANELS.find((g) => g.key === p.key)?.size[0] ?? 480,
             h:
               p.key === 'agent-chat' ? 480 :
-              p.key === 'agent-config' ? 520 :
-              GLOBAL_PANELS.find((g) => g.key === p.key)?.size[1] ?? 360,
+              p.key === 'agent-config' ? 620 :
+              ALL_PANELS.find((g) => g.key === p.key)?.size[1] ?? 360,
           }}
         >
           <PanelBody panelKey={p.key} agentId={p.agentId} />
@@ -104,6 +170,11 @@ function PanelBody({ panelKey, agentId }: { panelKey: PanelKey; agentId?: string
     case 'processes': return <ProcessList />;
     case 'system': return <SystemStats />;
     case 'vk': return <VKFeed />;
+    case 'telegram': return <TelegramPanel />;
+    case 'discord': return <DiscordPanel />;
+    case 'steam': return <SteamPanel />;
+    case 'spotify': return <SpotifyPanel />;
+    case 'notifications': return <div>see top-right toasts</div>;
     case 'agent-config':
       return agent ? <AgentConfig agent={agent} /> : <div>агент не найден</div>;
     case 'agent-chat':

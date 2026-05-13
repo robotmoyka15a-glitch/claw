@@ -21,6 +21,9 @@ class Agent(Base):
     llm_model: Mapped[str] = mapped_column(String(120), default="")
     system_prompt: Mapped[str] = mapped_column(Text, default="")
     temperature: Mapped[float] = mapped_column(Float, default=0.7)
+    # Comma-separated list of tool names this agent is allowed to call.
+    # Empty string = no tools (plain chat).
+    allowed_tools: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[float] = mapped_column(Float, default=lambda: time.time())
 
     messages: Mapped[list["AgentMessage"]] = relationship(
