@@ -1,12 +1,11 @@
-"""Thin async VK API client. Reads user access token from settings."""
+"""Thin async VK API client. Uses shared connection pool."""
 from __future__ import annotations
 
 import random
 from typing import Any
 
-import httpx
-
 from app.core.config import get_settings
+from app.core.http_pool import get_client
 
 
 class VKError(Exception):
@@ -20,16 +19,16 @@ class VKClient:
         s = get_settings()
         self.token = token or s.vk_access_token
         self.version = version or s.vk_api_version
-        self._client = httpx.AsyncClient(timeout=15.0)
 
     async def close(self) -> None:
-        await self._client.aclose()
+        pass  # shared pool
 
     async def call(self, method: str, **params: Any) -> Any:
         if not self.token:
             raise VKError("VK access token is not configured")
         payload = {"access_token": self.token, "v": self.version, **params}
-        r = await self._client.post(f"{self.BASE}/{method}", data=payload)
+        c = await get_client()
+        r = await c.post(f"{self.BASE}/{method}", data=payload)
         r.raise_for_status()
         data = r.json()
         if "error" in data:

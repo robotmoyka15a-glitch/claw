@@ -64,6 +64,29 @@ async def get_providers():
     return out
 
 
+@router.get("/router/capabilities")
+async def router_capabilities():
+    """Return the full capability table used by ModelRouter."""
+    from app.llm.router import get_router  # noqa: PLC0415
+    r = get_router()
+    await r.add_ollama_models()
+    return [
+        {
+            "provider": c.provider,
+            "model": c.model,
+            "tool_calling": c.tool_calling,
+            "reasoning": c.reasoning,
+            "speed": c.speed,
+            "long_context": c.long_context,
+            "vision": c.vision,
+            "offline": c.offline,
+            "max_context_tokens": c.max_context_tokens,
+            "tags": c.tags,
+        }
+        for c in r._caps
+    ]
+
+
 @router.get("")
 async def list_agents():
     return await manager.list_agents()

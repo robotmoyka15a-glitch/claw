@@ -13,6 +13,7 @@ import { SteamPanel } from './panels/Steam';
 import { SpotifyPanel } from './panels/Spotify';
 import { SettingsPanel } from './panels/Settings';
 import { AboutPanel } from './panels/About';
+import { AutonomyPanel } from './panels/Autonomy';
 import { ToastLayer } from './panels/Toasts';
 import { AgentConfig } from './panels/AgentConfig';
 import { AgentChat } from './panels/AgentChat';
@@ -28,6 +29,7 @@ const ALL_PANELS: {
   { key: 'terminal',  title: '💻 Терминал',   size: [640, 420], always: true },
   { key: 'processes', title: '🔧 Процессы',   size: [600, 460], always: true },
   { key: 'system',    title: '📊 Система',    size: [520, 340], always: true },
+  { key: 'autonomy',  title: '🤖 Автономия',  size: [620, 580], always: true },
   { key: 'vk',        title: '💙 ВКонтакте', size: [440, 560], connector: 'vk' },
   { key: 'telegram',  title: '✈️ Telegram',   size: [420, 520], connector: 'telegram' },
   { key: 'discord',   title: '🎮 Discord',    size: [420, 520], connector: 'discord' },
@@ -177,6 +179,7 @@ function PanelBody({ panelKey, agentId }: { panelKey: PanelKey; agentId?: string
     case 'terminal':     return <Terminal />;
     case 'processes':    return <ProcessList />;
     case 'system':       return <SystemStats />;
+    case 'autonomy':     return <AutonomyPanel />;
     case 'vk':           return <VKFeed />;
     case 'telegram':     return <TelegramPanel />;
     case 'discord':      return <DiscordPanel />;
