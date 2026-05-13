@@ -1,8 +1,8 @@
 name: Build & Release EXE
 
-# Triggers:
-#  • Push a tag like v1.0.0  →  builds claw.exe and creates a GitHub Release
-#  • Manual run from the Actions tab (workflow_dispatch) for testing
+# ─── Triggers ────────────────────────────────────────────────────────────────
+#  • Push a version tag  v1.2.3  →  builds claw.exe + creates GitHub Release
+#  • Manual "Run workflow" from the Actions tab (for testing)
 on:
   push:
     tags:
@@ -10,21 +10,21 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # needed to create releases and upload assets
+  contents: write
 
 jobs:
   build:
-    name: Build claw.exe (Windows)
+    name: 🔨 Build claw.exe (Windows x64)
     runs-on: windows-latest
 
     steps:
-      # ── checkout ──────────────────────────────────────────────────────────
-      - name: Checkout repository
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ── Node / frontend ───────────────────────────────────────────────────
+      # ── 2. Node.js + frontend ──────────────────────────────────────────────
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -32,16 +32,24 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
+      - name: Install frontend deps
         working-directory: frontend
         run: npm ci --no-audit --no-fund
 
       - name: Build frontend (Vite)
         working-directory: frontend
         run: npm run build
-        # produces frontend/dist/
 
-      # ── Python / backend ──────────────────────────────────────────────────
+      - name: Verify frontend/dist
+        run: |
+          if (!(Test-Path "frontend\dist\index.html")) {
+            Write-Error "frontend/dist/index.html not found — Vite build failed"
+            exit 1
+          }
+          Write-Host "frontend/dist ready"
+        shell: pwsh
+
+      # ── 3. Python + backend ────────────────────────────────────────────────
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -49,75 +57,91 @@ jobs:
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
 
-      - name: Install Python dependencies
+      - name: Install backend deps
         working-directory: backend
         run: pip install -r requirements.txt
 
-      # ── PyInstaller ───────────────────────────────────────────────────────
+      # Quick smoke test — catch import errors before slow PyInstaller run
+      - name: Backend smoke test
+        working-directory: backend
+        run: |
+          python -c "
+          from app.main import app
+          from app.tools import build_default_registry
+          r = build_default_registry()
+          print(f'routes: {len(app.routes)}  tools: {len(r.all())}')
+          assert len(app.routes) >= 60, 'too few routes'
+          assert len(r.all()) >= 20,   'too few tools'
+          print('smoke test PASSED')
+          "
+
+      # ── 4. PyInstaller ─────────────────────────────────────────────────────
       - name: Build EXE with PyInstaller
         working-directory: backend
         run: pyinstaller claw.spec --noconfirm --clean
 
-      # Sanity-check: make sure the file was actually produced
-      - name: Verify claw.exe exists
+      - name: Verify claw.exe
         run: |
           if (!(Test-Path "backend\dist\claw.exe")) {
             Write-Error "claw.exe not found!"
             exit 1
           }
           $size = (Get-Item "backend\dist\claw.exe").Length / 1MB
-          Write-Host ("claw.exe size: {0:N1} MB" -f $size)
+          Write-Host ("✓ claw.exe built  size: {0:N1} MB" -f $size)
         shell: pwsh
 
-      # ── Upload artifact (available even on manual runs / non-tag pushes) ──
+      # ── 5. Upload artifact (every run) ─────────────────────────────────────
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
           name: claw-windows-exe
           path: backend/dist/claw.exe
-          retention-days: 30
+          retention-days: 90
 
-      # ── Create GitHub Release (only on version tags) ───────────────────────
-      - name: Extract version from tag
+      # ── 6. GitHub Release (tags only) ──────────────────────────────────────
+      - name: Get version from tag
         if: startsWith(github.ref, 'refs/tags/')
-        id: version
+        id: ver
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Generate release notes
-        if: startsWith(github.ref, 'refs/tags/')
-        id: notes
-        run: |
-          cat << 'EOF' >> $GITHUB_OUTPUT
-          notes<<ENDNOTES
-          ## claw ${{ steps.version.outputs.version }}
-
-          **Загрузка и запуск:**
-          1. Скачай `claw.exe` ниже
-          2. Запусти — браузер откроется автоматически на `http://127.0.0.1:8765`
-          3. При первом запуске в `%LOCALAPPDATA%\claw\.env` появится шаблон для токенов
-          4. Для системного трея нужен Windows 10/11
-
-          **Что внутри:**
-          - Изометрическая рабочая комната с ИИ-агентами
-          - Мониторинг процессов и системных ресурсов (CPU/RAM/Disk/Net)
-          - Встроенный PTY-терминал (PowerShell/cmd)
-          - Коннекторы: ВКонтакте, Telegram, Discord, Steam, Spotify
-          - LLM: Ollama (локально), Qwen local (vLLM/LM Studio), Qwen cloud (DashScope)
-          - Tool-calling: агенты могут вызывать инструменты и делегировать задачи друг другу
-
-          **Требования:** Windows 10/11 x64, Ollama или любой OpenAI-совместимый сервер
-          ENDNOTES
-          EOF
         shell: bash
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: claw ${{ steps.version.outputs.version }}
-          body: ${{ steps.notes.outputs.notes }}
-          draft: false
-          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
-          files: backend/dist/claw.exe
+          tag_name:   ${{ steps.ver.outputs.version }}
+          name:       claw ${{ steps.ver.outputs.version }}
+          prerelease: ${{ contains(steps.ver.outputs.version, '-') }}
+          files:      backend/dist/claw.exe
+          body: |
+            ## claw ${{ steps.ver.outputs.version }} — Control Local Agents Workspace
+
+            ### ⬇️ Установка
+
+            1. Скачай **`claw.exe`** ниже (один файл, ~80–120 МБ)
+            2. Запусти — откроется браузер на `http://127.0.0.1:8765`
+            3. Открой **⚙️ Настройки** и вставь токены VK / Telegram / LLM
+            4. Кликни на агента → чат или настрой автономную задачу
+
+            > **Требования:** Windows 10/11 x64 · 4 ГБ RAM  
+            > Ollama нужен для локальных LLM — без него работает с Qwen cloud
+
+            ---
+
+            ### Что внутри
+
+            | | |
+            |---|---|
+            | 🏠 Изометрическая комната | Pixi.js 2.5D, анимации, CPU-картина на стене |
+            | 🤖 Автономные агенты | Задачи по расписанию/событиям, Plan-and-Execute loop |
+            | 🧠 ModelRouter | Автовыбор Ollama/Qwen под задачу + fallback |
+            | 📊 Мониторинг | CPU/RAM/Disk/Net real-time WebSocket |
+            | 💻 Терминал | Windows PTY, xterm.js |
+            | 💙 ВКонтакте | Лента, лайки, сообщения |
+            | ✈️ Telegram | Long-poll + Webhook, автоответ |
+            | 🎮 Discord / 🎯 Steam / 🎵 Spotify | Полная интеграция |
+            | 🔒 Безопасность | CSRF, шифрование .env, rate limiter |
+
+            ---
+
+            **[Исходный код и документация →](https://github.com/robotmoyka15a-glitch/claw)**

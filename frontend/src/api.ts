@@ -224,13 +224,7 @@ export const api = {
   // csrf token (fetched once on startup and attached to mutating requests)
   csrfToken: () => j<{ token: string }>('/api/auth/token'),
 
-  // models + router capabilities
-  modelsSnapshot: () => j<any>('/api/models'),
-  ollamaModelInfo: (name: string) => j<any>(`/api/models/ollama/info/${encodeURIComponent(name)}`),
-  ollamaPull: (name: string) =>
-    j<any>('/api/models/ollama/pull', { method: 'POST', body: JSON.stringify({ name }) }),
-  ollamaDelete: (name: string) =>
-    j<any>(`/api/models/ollama/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  // router capabilities
   routerCapabilities: () => j<any[]>('/api/agents/router/capabilities'),
 };
 
